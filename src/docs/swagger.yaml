@@ -1,0 +1,681 @@
+openapi: 3.0.3
+info:
+  title: Servicios API – BarberTime
+  description: |
+    Microservicio de catálogo para **BarberTime**.  
+    Gestiona los **servicios** (corte, barba, tinte…) y los **productos** (cera, shampoo, aceite…).
+
+    ## Autenticación
+    Los endpoints de escritura (POST, PUT, DELETE) requieren un JWT emitido por el
+    servicio de Usuarios en el header `Authorization`:
+    ```
+    Authorization: Bearer <token>
+    ```
+    Los endpoints de lectura (GET) son **públicos**.
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:4002
+    description: Servidor local
+
+tags:
+  - name: Salud
+    description: Health check del microservicio
+  - name: Servicios
+    description: Catálogo de servicios de barbería
+  - name: Productos
+    description: Catálogo de productos en venta
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+
+    Servicio:
+      type: object
+      properties:
+        _id:
+          type: string
+          example: "664f1a2b3c4d5e6f7a8b9c0d"
+        nombre:
+          type: string
+          example: "Corte clásico"
+        descripcion:
+          type: string
+          example: "Corte tradicional con tijera y navaja"
+        precio:
+          type: number
+          example: 25000
+        duracionMinutos:
+          type: integer
+          example: 30
+        categoria:
+          type: string
+          example: "corte"
+        imagen:
+          type: string
+          example: "https://cdn.example.com/corte-clasico.jpg"
+        activo:
+          type: boolean
+          example: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    ServicioInput:
+      type: object
+      required: [nombre, precio, duracionMinutos]
+      properties:
+        nombre:
+          type: string
+          example: "Corte clásico"
+        descripcion:
+          type: string
+          example: "Corte tradicional con tijera y navaja"
+        precio:
+          type: number
+          minimum: 0
+          example: 25000
+        duracionMinutos:
+          type: integer
+          minimum: 1
+          example: 30
+        categoria:
+          type: string
+          example: "corte"
+        imagen:
+          type: string
+          example: "https://cdn.example.com/corte-clasico.jpg"
+        activo:
+          type: boolean
+          example: true
+
+    Producto:
+      type: object
+      properties:
+        _id:
+          type: string
+          example: "664f1a2b3c4d5e6f7a8b9c0e"
+        nombre:
+          type: string
+          example: "Cera mate"
+        descripcion:
+          type: string
+          example: "Cera de fijación fuerte con acabado mate"
+        precio:
+          type: number
+          example: 18000
+        stock:
+          type: integer
+          example: 50
+        marca:
+          type: string
+          example: "AmericanCrew"
+        categoria:
+          type: string
+          example: "cera"
+        imagen:
+          type: string
+          example: "https://cdn.example.com/cera-mate.jpg"
+        activo:
+          type: boolean
+          example: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    ProductoInput:
+      type: object
+      required: [nombre, precio, stock]
+      properties:
+        nombre:
+          type: string
+          example: "Cera mate"
+        descripcion:
+          type: string
+          example: "Cera de fijación fuerte con acabado mate"
+        precio:
+          type: number
+          minimum: 0
+          example: 18000
+        stock:
+          type: integer
+          minimum: 0
+          example: 50
+        marca:
+          type: string
+          example: "AmericanCrew"
+        categoria:
+          type: string
+          example: "cera"
+        imagen:
+          type: string
+          example: "https://cdn.example.com/cera-mate.jpg"
+        activo:
+          type: boolean
+          example: true
+
+    Paginacion:
+      type: object
+      properties:
+        total:
+          type: integer
+          example: 42
+        page:
+          type: integer
+          example: 1
+        limit:
+          type: integer
+          example: 10
+        totalPaginas:
+          type: integer
+          example: 5
+
+    Error:
+      type: object
+      properties:
+        ok:
+          type: boolean
+          example: false
+        mensaje:
+          type: string
+          example: "Mensaje de error"
+        error:
+          type: string
+          example: "Detalle técnico del error"
+
+    Unauthorized:
+      type: object
+      properties:
+        ok:
+          type: boolean
+          example: false
+        mensaje:
+          type: string
+          example: "Token no proporcionado"
+
+paths:
+
+  /api/salud:
+    get:
+      summary: Health check
+      description: Verifica que el microservicio esté operativo.
+      tags: [Salud]
+      responses:
+        '200':
+          description: Servicio activo
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                    example: true
+                  servicio:
+                    type: string
+                    example: "modulo-servicios"
+                  estado:
+                    type: string
+                    example: "activo"
+
+  /api/servicios:
+    get:
+      summary: Listar servicios
+      description: Devuelve el catálogo de servicios con filtros y paginación opcionales. **Público**.
+      tags: [Servicios]
+      parameters:
+        - name: categoria
+          in: query
+          schema:
+            type: string
+          example: "corte"
+        - name: activo
+          in: query
+          schema:
+            type: boolean
+          example: true
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+      responses:
+        '200':
+          description: Lista de servicios
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                    example: true
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Servicio'
+                  paginacion:
+                    $ref: '#/components/schemas/Paginacion'
+        '500':
+          description: Error interno
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    post:
+      summary: Crear servicio
+      description: Crea un nuevo servicio. Requiere **JWT válido**.
+      tags: [Servicios]
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ServicioInput'
+      responses:
+        '201':
+          description: Servicio creado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/Servicio'
+        '400':
+          description: Datos inválidos
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: No autenticado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Unauthorized'
+
+  /api/servicios/{id}:
+    get:
+      summary: Obtener servicio por ID
+      description: Devuelve un servicio específico. **Público**.
+      tags: [Servicios]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          example: "664f1a2b3c4d5e6f7a8b9c0d"
+      responses:
+        '200':
+          description: Datos del servicio
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/Servicio'
+        '400':
+          description: ID inválido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Servicio no encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    put:
+      summary: Actualizar servicio
+      description: Actualiza un servicio existente. Requiere **JWT válido**.
+      tags: [Servicios]
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          example: "664f1a2b3c4d5e6f7a8b9c0d"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ServicioInput'
+      responses:
+        '200':
+          description: Servicio actualizado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/Servicio'
+        '400':
+          description: Datos inválidos
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: No autenticado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Unauthorized'
+        '404':
+          description: Servicio no encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    delete:
+      summary: Eliminar servicio
+      description: Elimina un servicio permanentemente. Requiere **JWT válido**.
+      tags: [Servicios]
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          example: "664f1a2b3c4d5e6f7a8b9c0d"
+      responses:
+        '200':
+          description: Servicio eliminado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                    example: true
+                  mensaje:
+                    type: string
+                    example: "Servicio eliminado correctamente"
+        '400':
+          description: ID inválido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: No autenticado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Unauthorized'
+        '404':
+          description: Servicio no encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/productos:
+    get:
+      summary: Listar productos
+      description: Devuelve el catálogo de productos con filtros y paginación opcionales. **Público**.
+      tags: [Productos]
+      parameters:
+        - name: categoria
+          in: query
+          schema:
+            type: string
+          example: "cera"
+        - name: marca
+          in: query
+          schema:
+            type: string
+          example: "AmericanCrew"
+        - name: activo
+          in: query
+          schema:
+            type: boolean
+          example: true
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+      responses:
+        '200':
+          description: Lista de productos
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                    example: true
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Producto'
+                  paginacion:
+                    $ref: '#/components/schemas/Paginacion'
+        '500':
+          description: Error interno
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    post:
+      summary: Crear producto
+      description: Crea un nuevo producto. Requiere **JWT válido**.
+      tags: [Productos]
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProductoInput'
+      responses:
+        '201':
+          description: Producto creado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/Producto'
+        '400':
+          description: Datos inválidos
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: No autenticado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Unauthorized'
+
+  /api/productos/{id}:
+    get:
+      summary: Obtener producto por ID
+      description: Devuelve un producto específico. **Público**.
+      tags: [Productos]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          example: "664f1a2b3c4d5e6f7a8b9c0e"
+      responses:
+        '200':
+          description: Datos del producto
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/Producto'
+        '400':
+          description: ID inválido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Producto no encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    put:
+      summary: Actualizar producto
+      description: Actualiza un producto existente. Requiere **JWT válido**.
+      tags: [Productos]
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          example: "664f1a2b3c4d5e6f7a8b9c0e"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProductoInput'
+      responses:
+        '200':
+          description: Producto actualizado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/Producto'
+        '400':
+          description: Datos inválidos
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: No autenticado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Unauthorized'
+        '404':
+          description: Producto no encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    delete:
+      summary: Eliminar producto
+      description: Elimina un producto permanentemente. Requiere **JWT válido**.
+      tags: [Productos]
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          example: "664f1a2b3c4d5e6f7a8b9c0e"
+      responses:
+        '200':
+          description: Producto eliminado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                    example: true
+                  mensaje:
+                    type: string
+                    example: "Producto eliminado correctamente"
+        '400':
+          description: ID inválido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: No autenticado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Unauthorized'
+        '404':
+          description: Producto no encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'

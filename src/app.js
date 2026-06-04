@@ -18,6 +18,13 @@ app.get('/api/salud', (req, res) => {
 // Rutas del módulo
 app.use('/api/servicios', servicioRoutes);
 app.use('/api/productos', productoRoutes);
+
+const swaggerUi = require('swagger-ui-express');
+const fs = require('fs');
+const YAML = require('js-yaml');
+
+const swaggerDoc = YAML.load(fs.readFileSync('./src/docs/swagger.yaml', 'utf8'));
+app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerDoc));
  
 // Ruta no encontrada (404)
 app.use((req, res) => {
